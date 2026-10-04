@@ -1,0 +1,61 @@
+# queue research pipeline: a research direction in, verified paper drafts out.
+#
+#   find → experiment → verify ─pass→ write → review ─pass→ done
+#              ↑           │fail              ↑      │fail
+#              └───────────┘                  └──────┘
+
+[pipeline]
+name = "research"
+start = "find"
+
+# Agents are the models you bring. Each uses that CLI's own login
+# (your subscription), or an API key passed through `env`.
+[agents.claude]
+use = "claude-code"
+model = "opus"
+# Unattended runs cannot stop to ask permission. acceptEdits lets Claude edit files in the
+# item folder; allowed_tools lists what else it may do without asking.
+# Bash is needed to run experiments. Run the experiment worker inside a sandbox.
+permission_mode = "acceptEdits"
+allowed_tools = ["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch", "Bash"]
+# To use an API key instead of your subscription:
+# env = { ANTHROPIC_API_KEY = "env:ANTHROPIC_API_KEY" }
+
+# A second, different model checks the first one's work.
+[agents.codex]
+use = "codex"
+sandbox = "workspace-write"
+# verify looks up citations, so allow network inside the codex sandbox
+extra_args = ["-c", "sandbox_workspace_write.network_access=true"]
+
+[stages.find]
+skill = "find-ideas"
+agent = "claude"
+next = "experiment"
+
+[stages.experiment]
+skill = "run-experiment"
+agent = "claude"
+next = "verify"
+max_attempts = 3
+timeout = 7200
+
+[stages.verify]
+skill = "verify"
+agent = "codex"
+pass = "write"
+fail = "experiment"
+max_attempts = 4
+
+[stages.write]
+skill = "write-paper"
+agent = "claude"
+next = "review"
+max_attempts = 3
+
+[stages.review]
+skill = "verify"
+agent = "codex"
+pass = "done"
+fail = "write"
+max_attempts = 4
