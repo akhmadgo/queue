@@ -216,3 +216,15 @@ def test_prompt_mentions_outcome_contract(toy):
     assert ".queue/outcome.json" in prompt
     assert "Do the make step." in prompt
     assert json  # keep import used
+
+
+def test_runs_are_recorded_per_stage(toy, monkeypatch, capsys):
+    engine, store = toy
+    monkeypatch.setenv("FAKE_CHECK", "fail,pass")
+    monkeypatch.setenv("FAKE_MAKE", "crash,pass")
+    engine.submit("measure me")
+    drain(engine)
+    stats = {s.stage: s for s in store.stage_stats()}
+    # make: crash, pass, then pass again after check sent it back
+    assert (stats["make"].runs, stats["make"].passed, stats["make"].errors) == (3, 2, 1)
+    assert (stats["check"].runs, stats["check"].passed, stats["check"].failed) == (2, 1, 1)

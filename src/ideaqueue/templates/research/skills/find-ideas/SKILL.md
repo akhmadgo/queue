@@ -15,6 +15,7 @@ agent can test with modest compute in a few hours.
    how interesting the result would be either way. Write the ranking to `ideas.md`.
 5. Spawn the top 3 as new items. For each, the title is the claim in one line and the body
    contains: hypothesis, proposed experiment, baseline, metric, what result would refute it,
-   and the closest prior work with links.
+   and the closest prior work with links. If the idea compares systems, name the budget
+   they will be matched on (tokens, calls or time).
 
 If nothing survives the novelty check, verdict "fail" with notes on what you tried.

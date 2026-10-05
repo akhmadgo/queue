@@ -12,7 +12,7 @@ from . import config
 from .engine import Engine
 from .store import PENDING, SHELVED, WAITING, Store
 
-COMMANDS = {"init", "add", "ls", "show", "run", "approve", "retry", "-h", "--help"}
+COMMANDS = {"init", "add", "ls", "show", "stats", "run", "approve", "retry", "-h", "--help"}
 
 
 def _open(args) -> tuple[config.Pipeline, Store, Engine]:
@@ -81,6 +81,22 @@ def cmd_show(args) -> None:
         print(f"  {e.ts[11:19]}  {e.stage:<12} {e.kind:<14} {e.message}")
 
 
+def cmd_stats(args) -> None:
+    _, store, _ = _open(args)
+    stats = store.stage_stats()
+    if not stats:
+        print("no runs yet")
+        return
+    print(f"{'stage':<14}{'runs':>5}{'pass':>6}{'fail':>6}{'error':>7}{'avg s':>8}{'cost':>9}")
+    for s in stats:
+        cost = f"${s.cost_usd:.2f}" if s.cost_usd is not None else "-"
+        print(f"{s.stage:<14}{s.runs:>5}{s.passed:>6}{s.failed:>6}{s.errors:>7}"
+              f"{s.seconds / s.runs:>8.0f}{cost:>9}")
+    costs = [s.cost_usd for s in stats if s.cost_usd is not None]
+    if costs:
+        print(f"total cost ${sum(costs):.2f}")
+
+
 def cmd_run(args) -> None:
     pipeline, _, engine = _open(args)
     stages = args.stage or None
@@ -136,6 +152,9 @@ def parser() -> argparse.ArgumentParser:
     s = sub.add_parser("show", help="show one item and its history")
     s.add_argument("id", type=int)
     s.set_defaults(fn=cmd_show)
+
+    s = sub.add_parser("stats", help="runs, verdicts, time and cost per stage")
+    s.set_defaults(fn=cmd_stats)
 
     s = sub.add_parser("run", help="start a worker that drains the queue")
     s.add_argument("-s", "--stage", action="append", help="only these stages (repeatable)")

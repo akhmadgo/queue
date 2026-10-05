@@ -15,6 +15,17 @@ The item is one research idea (see `idea.md`). Test it.
    each number comes from, and whether the hypothesis held. A negative result is a valid
    result; report it plainly.
 
+Rules that keep results honest:
+- Split data into train, validation and a held-out test set before writing any method code.
+  Tune only on validation. Evaluate on the test set once, at the end. The verify stage
+  re-checks results on data you did not tune on; results that only hold on tuned data fail.
+- Write general methods. Never special-case or hardcode answers for specific examples in
+  the evaluation data, even if it raises the score.
+- When comparing systems (for example one agent against several), give every system the
+  same budget (tokens, model calls, wall-clock or GPU time) and report the budget used
+  next to each result. A comparison at unequal budgets is not a result.
+- Record the cost of each run (tokens, dollars, seconds) in its metrics.json.
+
 Never type a number into RESULTS.md that is not in a metrics.json. Never delete a run
 because it looked bad.
 

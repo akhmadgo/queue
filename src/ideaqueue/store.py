@@ -37,6 +37,17 @@ CREATE TABLE IF NOT EXISTS events (
     kind     TEXT NOT NULL,
     message  TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS runs (
+    id        INTEGER PRIMARY KEY,
+    item_id   INTEGER NOT NULL,
+    ts        TEXT NOT NULL,
+    stage     TEXT NOT NULL,
+    attempt   INTEGER NOT NULL,
+    agent     TEXT NOT NULL,
+    verdict   TEXT NOT NULL,   -- pass, fail, error
+    seconds   REAL NOT NULL,
+    cost_usd  REAL
+);
 """
 
 
@@ -78,6 +89,17 @@ class Event:
     stage: str
     kind: str
     message: str
+
+
+@dataclass
+class StageStats:
+    stage: str
+    runs: int
+    passed: int
+    failed: int
+    errors: int
+    seconds: float
+    cost_usd: float | None
 
 
 class Store:
@@ -147,6 +169,14 @@ class Store:
             (item_id, _now(), stage, kind, message),
         )
 
+    def record_run(self, item_id: int, stage: str, attempt: int, agent: str, verdict: str,
+                   seconds: float, cost_usd: float | None) -> None:
+        self.db.execute(
+            "INSERT INTO runs (item_id, ts, stage, attempt, agent, verdict, seconds, cost_usd)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (item_id, _now(), stage, attempt, agent, verdict, seconds, cost_usd),
+        )
+
     def release_stale(self, worker: str) -> int:
         """Put back items this worker was running when it last died."""
         cur = self.db.execute(
@@ -176,3 +206,13 @@ class Store:
             (item_id,),
         )
         return [Event(**dict(r)) for r in rows]
+
+    def stage_stats(self) -> list[StageStats]:
+        rows = self.db.execute(
+            "SELECT stage, COUNT(*) AS runs,"
+            " SUM(verdict = 'pass') AS passed, SUM(verdict = 'fail') AS failed,"
+            " SUM(verdict = 'error') AS errors, SUM(seconds) AS seconds,"
+            " SUM(cost_usd) AS cost_usd"
+            " FROM runs GROUP BY stage ORDER BY MIN(id)"
+        )
+        return [StageStats(**dict(r)) for r in rows]

@@ -19,13 +19,14 @@ find → experiment → verify ─pass→ write → review ─pass→ done
 ## Quick start
 
 ```bash
-uv tool install ideaqueue        # or: pip install ideaqueue
+uv tool install git+https://github.com/akhmadgo/queue
 mkdir my-research && cd my-research
 q init                           # research pipeline + skills
 q "efficient long-context attention for small models"
 q run                            # start a worker; Ctrl-C to stop
 q ls                             # what's where
 q show 3                         # one item's history
+q stats                          # runs, pass/fail, time and cost per stage
 ```
 
 Each item gets a folder under `.queue/items/` holding everything its agents produced, plus
@@ -89,6 +90,11 @@ do (`permission_mode`, `allowed_tools`, `sandbox`), and run workers that execute
 (like `experiment`) inside a sandbox or VM, not on a machine with your credentials.
 Anything that leaves your machines, such as submitting a paper, should use
 `approval = "human"`.
+
+## Research agenda
+
+queue is also a testbed for controlled experiments on how agents behave in multi-stage
+systems. See [docs/RESEARCH.md](docs/RESEARCH.md).
 
 ## Status
 

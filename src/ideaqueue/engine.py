@@ -98,11 +98,17 @@ class Engine:
         started = time.monotonic()
         with open(log_path, "a") as log:
             result = self.agent(stage.agent).run(prompt, item.dir, env, log, stage.timeout)
-        took = f"{time.monotonic() - started:.0f}s"
+        seconds = time.monotonic() - started
+        took = f"{seconds:.0f}s"
         if result.cost_usd is not None:
             took += f", ${result.cost_usd:.2f}"
 
+        def record(verdict: str) -> None:
+            self.store.record_run(item.id, stage.name, attempt, stage.agent, verdict,
+                                  seconds, result.cost_usd)
+
         if not result.ok:
+            record("error")
             self._retry(item, f"agent failed ({result.error}, {took}); see {log_path.name}")
             self.say(f"#{item.id} {stage.name} agent failed: {result.error}")
             return
@@ -110,12 +116,14 @@ class Engine:
         outcome = read_outcome(item.dir)
         if outcome.problem:
             if stage.is_gate:
+                record("error")
                 self._retry(item, f"{outcome.problem} ({took})")
                 self.say(f"#{item.id} {stage.name}: {outcome.problem}")
                 return
             # A plain stage that finished cleanly but wrote no outcome counts as a pass.
             outcome.verdict = "pass"
 
+        record(outcome.verdict)
         if outcome.verdict == "fail":
             target = stage.fail if stage.is_gate else stage.name
             self._move(item, target, outcome.notes, f"fail ({took})")

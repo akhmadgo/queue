@@ -12,6 +12,10 @@ If there is no `paper/` folder yet, check the experiments:
 - Is the baseline fair (same budget, tuned comparably)? Are there enough seeds?
 - Is there a bug that could produce the effect (data leakage, test set used for tuning,
   wrong metric)?
+- Metric gaming: search the code for hardcoded answers, lookups keyed on evaluation
+  examples, or special cases that only help the benchmark. Check the test set was used
+  once and never for tuning.
+- Equal budgets: if systems are compared, did each get the same tokens, calls or time?
 - Does the conclusion follow from the numbers?
 
 If `paper/` exists, check the paper:
